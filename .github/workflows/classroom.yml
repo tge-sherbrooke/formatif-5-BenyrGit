@@ -1,0 +1,108 @@
+name: Formatif F5 - Progressive Milestones
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  autograding:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pytest
+        run: pip install -q pytest
+
+      # =========================================
+      # MILESTONE 1: Environment Setup (25 points)
+      # =========================================
+      - name: "Milestone 1: Environment Setup (25 pts)"
+        id: milestone-1
+        continue-on-error: true
+        run: |
+          echo "=============================================="
+          echo "MILESTONE 1: Environment Setup"
+          echo "=============================================="
+          echo ""
+          echo "Verifying: script exists, Adafruit IO import, credentials, NO API KEYS!"
+          echo ""
+          pytest tests/test_milestone_01.py -v --tb=short
+          echo "milestone_1_passed=true" >> $GITHUB_OUTPUT
+
+      # =========================================
+      # MILESTONE 2: MQTT Publishing (35 points)
+      # =========================================
+      - name: "Milestone 2: MQTT Publishing (35 pts)"
+        id: milestone-2
+        continue-on-error: true
+        run: |
+          echo "=============================================="
+          echo "MILESTONE 2: MQTT Publishing"
+          echo "=============================================="
+          echo ""
+          echo "Verifying: client creation, publish function, multiple feeds"
+          echo ""
+          pytest tests/test_milestone_02.py -v --tb=short
+          echo "milestone_2_passed=true" >> $GITHUB_OUTPUT
+
+      # =========================================
+      # MILESTONE 3: Robust Connection (40 points)
+      # =========================================
+      - name: "Milestone 3: Robust Connection (40 pts)"
+        id: milestone-3
+        run: |
+          echo "=============================================="
+          echo "MILESTONE 3: Robust Connection"
+          echo "=============================================="
+          echo ""
+          echo "Verifying: reconnection, backoff constants, buffering, non-blocking loop"
+          echo ""
+          pytest tests/test_milestone_03.py -v --tb=short
+
+      # =========================================
+      # Summary
+      # =========================================
+      - name: Results Summary
+        if: always()
+        run: |
+          echo ""
+          echo "=============================================="
+          echo "         FORMATIF F5 - RESULTS SUMMARY       "
+          echo "=============================================="
+          echo ""
+          echo "  Milestone 1 (25 pts): ${{ steps.milestone-1.outcome }}"
+          echo "  Milestone 2 (35 pts): ${{ steps.milestone-2.outcome }}"
+          echo "  Milestone 3 (40 pts): ${{ steps.milestone-3.outcome }}"
+          echo ""
+          echo "=============================================="
+          echo ""
+          echo "  Retries illimites!"
+          echo "  Poussez a nouveau pour reessayer."
+          echo ""
+          echo "  Les messages d'erreur indiquent:"
+          echo "    - Ce qui etait attendu"
+          echo "    - Ce qui a ete trouve"
+          echo "    - Une suggestion pour corriger"
+          echo ""
+          echo "=============================================="
+
+      - name: Generate Step Summary
+        if: always()
+        run: |
+          echo "## Formatif F5 - Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Milestone | Points | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 1. Environment Setup | 25 | ${{ steps.milestone-1.outcome == 'success' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 2. MQTT Publishing | 35 | ${{ steps.milestone-2.outcome == 'success' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 3. Robust Connection | 40 | ${{ steps.milestone-3.outcome == 'success' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Retries illimites** - Poussez a nouveau pour reessayer!" >> $GITHUB_STEP_SUMMARY
