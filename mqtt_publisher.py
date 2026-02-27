@@ -1,11 +1,13 @@
 # /// script
 # requires-python = ">=3.9"
-# dependencies = ["adafruit-io"]
+# dependencies = ["adafruit-io", "adafruit-circuitpython-ahtx0", "adafruit-blinka", "rpi-gpio>=0.7.1"]
 # ///
 """Publication MQTT vers Adafruit IO avec reconnexion robuste."""
 
 import os
 import time
+import board
+import adafruit_ahtx0
 from Adafruit_IO import MQTTClient
 
 # Configuration - NE PAS HARDCODER LES CLES!
@@ -15,6 +17,8 @@ ADAFRUIT_IO_KEY = os.environ.get('ADAFRUIT_IO_KEY')
 # Backoff constants
 MIN_DELAY = 1    # 1 seconde initial
 MAX_DELAY = 120  # 2 minutes max
+# nombre de tentative de lecture du capteur
+MAX_RETRIES = 3  
 
 # Buffer pour les donnees pendant deconnexion
 data_buffer = []
@@ -65,6 +69,21 @@ def reconnect_with_backoff(client):
             time.sleep(delay)
             delay = min(delay * 2, MAX_DELAY)
 
+def read_aht20():
+    """Lit le capteur AHT20 avec retry en cas d'erreur."""
+    i2c = board.I2C()
+    sensor = adafruit_ahtx0.AHTx0(i2c)
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            temperature = round(sensor.temperature, 1)
+            humidity = round(sensor.relative_humidity, 1)
+            return temperature, humidity
+        except Exception as e:
+            print(f"Tentative {attempt + 1}/{MAX_RETRIES}: {e}")
+            time.sleep(1)
+
+    raise RuntimeError(f"Echec apres {MAX_RETRIES} tentatives")
 
 def main():
     if not ADAFRUIT_IO_USERNAME or not ADAFRUIT_IO_KEY:
@@ -82,9 +101,7 @@ def main():
 
     # Exemple de publication
     while True:
-        # Lire capteurs (exemple)
-        temperature = 22.5
-        humidity = 45.0
+        temperature, humidity = read_aht20()
 
         publish_or_buffer(client, 'temperature', temperature)
         publish_or_buffer(client, 'humidity', humidity)
